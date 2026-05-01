@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>browser-byok demo</title>
+<meta name="description" content="Reference implementation: BYOK pattern for browser-only apps. Key stays in memory, never persisted, never logged.">
+<meta name="ai.description" content="Single-file HTML demo of the in-browser BYOK pattern using the Anthropic API. The user provides their API key, which is validated and held in memory only for the session. Includes light and dark themes, full keyboard navigation, screen reader support, and inline security notes. No frameworks, no dependencies, no third-party scripts.">
+<meta property="og:title" content="browser-byok demo">
+<meta property="og:description" content="Reference implementation: BYOK pattern for browser-only apps.">
+<meta property="og:type" content="website">
+<style>
+:root {
+  --bg: #fafaf7;
+  --surface: #ffffff;
+  --ink: #1a1a1a;
+  --ink-soft: #4a4a4a;
+  --rule: #e5e3dc;
+  --accent: #006b5e;
+  --accent-soft: #e6f2f0;
+  --warn: #a04500;
+  --warn-soft: #fbeee0;
+  --error: #b3261e;
+  --error-soft: #fbe9e7;
+  --ok: #1f6f43;
+  --ok-soft: #e3f2ea;
+}
+[data-theme="dark"] {
+  --bg: #1a1d20;
+  --surface: #23272b;
+  --ink: #f0f0e8;
+  --ink-soft: #b5b5ad;
+  --rule: #353a3f;
+  --accent: #4dd6c1;
+  --accent-soft: #1f3531;
+  --warn: #e6a960;
+  --warn-soft: #3d2f1c;
+  --error: #f08585;
+  --error-soft: #3d2222;
+  --ok: #7fc99c;
+  --ok-soft: #1f3327;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.55;
+  min-height: 100vh;
+  font-size: 16px;
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.skip-link {
+  position: absolute; left: -9999px; top: 0;
+  background: var(--accent); color: var(--bg);
+  padding: 0.5rem 1rem; z-index: 100;
+  text-decoration: none; font-weight: 600;
+}
+.skip-link:focus { left: 1rem; top: 1rem; }
+
+.layout {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 2rem;
+}
+.title h1 {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+.title p {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.theme-toggle {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.4rem 0.625rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.theme-toggle svg { width: 14px; height: 14px; }
+
+section {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+section h2 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  margin-bottom: 1rem;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+.field { margin-bottom: 1rem; }
+label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.375rem;
+}
+input[type="text"], input[type="password"], textarea {
+  width: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.625rem 0.75rem;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+input:focus, textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: var(--accent);
+}
+textarea {
+  font-family: inherit;
+  resize: vertical;
+  min-height: 80px;
+}
+.help {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  margin-top: 0.375rem;
+  line-height: 1.5;
+}
+.help a { color: var(--accent); }
+
+.row {
+  display: flex;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+button.primary, button.secondary {
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+button.primary {
+  background: var(--accent);
+  color: var(--bg);
+  border: 1px solid var(--accent);
+}
+button.primary:hover:not(:disabled) { filter: brightness(0.92); }
+button.secondary {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--rule);
+}
+button.secondary:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.status {
+  margin-top: 0.875rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  border: 1px solid var(--rule);
+}
+.status .label {
+  font-weight: 600;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.status.ok { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+.status.warn { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
+.status.err { background: var(--error-soft); border-color: var(--error); color: var(--error); }
+
+.spinner {
+  display: inline-block;
+  width: 12px; height: 12px;
+  border: 2px solid var(--rule);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#output-block {
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.875rem 1rem;
+  margin-top: 0.75rem;
+  font-size: 0.9375rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  min-height: 60px;
+  line-height: 1.55;
+}
+
+#key-section[data-state="validated"] #key-fields { display: none; }
+#key-section[data-state="validated"] #key-validated { display: block; }
+#key-validated { display: none; }
+#demo-section { display: none; }
+#key-section[data-state="validated"] ~ #demo-section { display: block; }
+
+.notes {
+  list-style: none;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+.notes li {
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  gap: 0.625rem;
+}
+.notes li:first-child { border-top: none; padding-top: 0; }
+.notes li::before {
+  content: "·";
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+footer {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  line-height: 1.7;
+}
+footer a { color: var(--ink-soft); text-decoration: underline; text-underline-offset: 2px; }
+footer a:hover { color: var(--accent); }
+
+@media (max-width: 540px) {
+  .layout { padding: 1.5rem 1rem 3rem; }
+  header { flex-direction: column; align-items: stretch; }
+  .title h1 { font-size: 1.125rem; }
+}
+</style>
+</head>
+<body data-theme="light">
+<a href="#main" class="skip-link">Skip to main content</a>
+<div class="layout">
+
+  <header>
+    <div class="title">
+      <h1>browser-byok demo</h1>
+      <p>Reference implementation. Your key stays in this tab.</p>
+    </div>
+    <button type="button" class="theme-toggle" id="theme-btn"
+      aria-label="Toggle dark theme" aria-pressed="false">
+      <svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4"></circle>
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+      </svg>
+      <span id="theme-label">Dark</span>
+    </button>
+  </header>
+
+  <main id="main">
+
+    <section id="key-section" data-state="empty" aria-labelledby="key-heading">
+      <h2 id="key-heading">Step 1. Provide your key</h2>
+
+      <div id="key-fields">
+        <div class="field">
+          <label for="api-key">Anthropic API key</label>
+          <input type="password" id="api-key" autocomplete="off" spellcheck="false"
+            placeholder="sk-ant-..." aria-describedby="key-help">
+          <p id="key-help" class="help">
+            Get a key at <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a>.
+            Your key is held in this browser tab only. It is never written to localStorage, sessionStorage, cookies, or any URL. Closing or refreshing this tab discards it.
+          </p>
+        </div>
+        <div class="row">
+          <button type="button" class="primary" id="validate-btn">Validate &amp; save</button>
+        </div>
+        <div id="key-status" role="status" aria-live="polite"></div>
+      </div>
+
+      <div id="key-validated">
+        <div class="status ok">
+          <span class="label">OK</span>
+          <span>Key validated. Stored in memory for this session only.</span>
+        </div>
+        <div class="row">
+          <button type="button" class="secondary" id="clear-btn">Clear key</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="demo-section" aria-labelledby="demo-heading">
+      <h2 id="demo-heading">Step 2. Try it</h2>
+      <div class="field">
+        <label for="prompt-input">Send a prompt to Claude</label>
+        <textarea id="prompt-input" placeholder="What is the capital of France?"></textarea>
+        <p class="help">This sends a real request using your key. Cost is fractions of a cent for short prompts.</p>
+      </div>
+      <div class="row">
+        <button type="button" class="primary" id="send-btn">Send</button>
+      </div>
+      <div id="demo-status" role="status" aria-live="polite"></div>
+      <div id="output-block" aria-live="polite" aria-atomic="false"></div>
+    </section>
+
+    <section aria-labelledby="notes-heading">
+      <h2 id="notes-heading">How this page handles your key</h2>
+      <ul class="notes">
+        <li>Held in a single JavaScript variable. Not in localStorage, sessionStorage, or cookies.</li>
+        <li>Sent only to <code>api.anthropic.com</code> over HTTPS. Verify in DevTools, Network tab.</li>
+        <li>No third-party scripts on this page. No analytics, no fonts, no external libraries.</li>
+        <li>Closing the tab, refreshing the page, or clicking Clear key wipes the variable.</li>
+        <li>Keys are never logged to the console, never written to any file, never sent anywhere except Anthropic.</li>
+      </ul>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>Source: <a href="https://github.com/0xelitesystem/byok-patterns" target="_blank" rel="noopener">github.com/0xelitesystem/byok-patterns</a></p>
+    <p>This demo is provided as a reference implementation. Not affiliated with Anthropic. API costs are billed to your own Anthropic account. Use at your own risk.</p>
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+// ===== Configuration =====
+// Swap these three lines to switch providers (e.g. OpenAI, Google AI).
+const API_BASE = "https://api.anthropic.com/v1/messages";
+const API_VERSION = "2023-06-01";
+const MODEL = "claude-sonnet-4-6";
+
+// ===== BYOKClient =====
+// A minimal, framework-agnostic client. Lift this class into your own code.
+class BYOKClient {
+  #apiKey = null; // private field, not enumerable, not serializable
+
+  isReady() { return this.#apiKey !== null; }
+
+  setKey(key) {
+    if (typeof key !== "string" || !key.startsWith("sk-ant-")) {
+      throw new Error("Key must be a string starting with sk-ant-");
+    }
+    this.#apiKey = key;
+  }
+
+  clearKey() { this.#apiKey = null; }
+
+  // Send a 1-token request to validate. Cheap, fast, gives a definitive answer.
+  async validate() {
+    if (!this.#apiKey) throw new Error("No key set");
+    const r = await fetch(API_BASE, {
+      method: "POST",
+      headers: this.#headers(),
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 1,
+        messages: [{ role: "user", content: "hi" }]
+      })
+    });
+    if (r.status === 401) throw new Error("Invalid API key");
+    if (r.status === 403) throw new Error("Key valid but lacks permission for this model");
+    if (r.status === 429) throw new Error("Rate limited. Wait a moment and try again.");
+    if (!r.ok) {
+      const detail = await this.#extractError(r);
+      throw new Error(`Validation failed: ${detail}`);
+    }
+    return true;
+  }
+
+  async send(prompt, opts = {}) {
+    if (!this.#apiKey) throw new Error("No key set");
+    if (!prompt || typeof prompt !== "string") throw new Error("Prompt is required");
+    const r = await fetch(API_BASE, {
+      method: "POST",
+      headers: this.#headers(),
+      body: JSON.stringify({
+        model: opts.model || MODEL,
+        max_tokens: opts.maxTokens || 512,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+    if (!r.ok) {
+      const detail = await this.#extractError(r);
+      throw new Error(`API error ${r.status}: ${detail}`);
+    }
+    const data = await r.json();
+    return data.content
+      .filter(b => b.type === "text")
+      .map(b => b.text)
+      .join("");
+  }
+
+  #headers() {
+    return {
+      "Content-Type": "application/json",
+      "x-api-key": this.#apiKey,
+      "anthropic-version": API_VERSION,
+      "anthropic-dangerous-direct-browser-access": "true"
+    };
+  }
+
+  async #extractError(r) {
+    try {
+      const j = await r.json();
+      return (j.error && j.error.message) || JSON.stringify(j).slice(0, 200);
+    } catch {
+      return (await r.text()).slice(0, 200);
+    }
+  }
+}
+
+// ===== UI wiring =====
+const client = new BYOKClient();
+
+const $ = (id) => document.getElementById(id);
+const keySection = $("key-section");
+const keyInput = $("api-key");
+const validateBtn = $("validate-btn");
+const clearBtn = $("clear-btn");
+const keyStatus = $("key-status");
+const promptInput = $("prompt-input");
+const sendBtn = $("send-btn");
+const demoStatus = $("demo-status");
+const outputBlock = $("output-block");
+const themeBtn = $("theme-btn");
+const themeLabel = $("theme-label");
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+  ));
+}
+
+function setStatus(el, kind, label, msg, withSpinner = false) {
+  if (!kind) { el.innerHTML = ""; return; }
+  const spin = withSpinner ? '<span class="spinner" aria-hidden="true"></span>' : "";
+  el.innerHTML = `<div class="status ${escapeHtml(kind)}">${spin}<span class="label">${escapeHtml(label)}</span><span>${escapeHtml(msg)}</span></div>`;
+}
+
+validateBtn.addEventListener("click", async () => {
+  const key = keyInput.value.trim();
+  if (!key) {
+    setStatus(keyStatus, "warn", "Empty", "Paste your key first.");
+    keyInput.focus();
+    return;
+  }
+  if (!key.startsWith("sk-ant-")) {
+    setStatus(keyStatus, "err", "Invalid", 'Anthropic keys start with "sk-ant-".');
+    return;
+  }
+  validateBtn.disabled = true;
+  setStatus(keyStatus, "ok", "Checking", "Validating key with Anthropic ...", true);
+  try {
+    client.setKey(key);
+    await client.validate();
+    keyInput.value = ""; // remove from DOM as soon as it's saved in memory
+    keySection.dataset.state = "validated";
+    setStatus(keyStatus, "", "", "");
+  } catch (err) {
+    client.clearKey();
+    setStatus(keyStatus, "err", "Failed", err.message);
+  } finally {
+    validateBtn.disabled = false;
+  }
+});
+
+clearBtn.addEventListener("click", () => {
+  client.clearKey();
+  keySection.dataset.state = "empty";
+  promptInput.value = "";
+  outputBlock.textContent = "";
+  setStatus(keyStatus, "", "", "");
+  setStatus(demoStatus, "", "", "");
+  keyInput.focus();
+});
+
+sendBtn.addEventListener("click", async () => {
+  const prompt = promptInput.value.trim();
+  if (!prompt) {
+    setStatus(demoStatus, "warn", "Empty", "Type a prompt first.");
+    promptInput.focus();
+    return;
+  }
+  if (!client.isReady()) {
+    setStatus(demoStatus, "err", "No key", "Validate a key first.");
+    return;
+  }
+  sendBtn.disabled = true;
+  outputBlock.textContent = "";
+  setStatus(demoStatus, "ok", "Sending", "Calling Anthropic ...", true);
+  try {
+    const reply = await client.send(prompt);
+    outputBlock.textContent = reply;
+    setStatus(demoStatus, "", "", "");
+  } catch (err) {
+    setStatus(demoStatus, "err", "Failed", err.message);
+  } finally {
+    sendBtn.disabled = false;
+  }
+});
+
+// Allow Cmd/Ctrl+Enter to send the prompt for keyboard users.
+promptInput.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+    e.preventDefault();
+    sendBtn.click();
+  }
+});
+keyInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    validateBtn.click();
+  }
+});
+
+// Theme toggle. Stored as an attribute on body, toggleable, accessible.
+function applyTheme(theme) {
+  document.body.dataset.theme = theme;
+  themeLabel.textContent = theme === "dark" ? "Light" : "Dark";
+  themeBtn.setAttribute("aria-pressed", String(theme === "dark"));
+  // Switch icon: sun (light theme) vs moon (dark theme)
+  const icon = $("theme-icon");
+  if (theme === "dark") {
+    icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+  } else {
+    icon.innerHTML = '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>';
+  }
+}
+
+themeBtn.addEventListener("click", () => {
+  const next = document.body.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(next);
+});
+
+// Honor OS preference on first load (no localStorage; theme resets to OS pref each session).
+if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+  applyTheme("dark");
+}
+</script>
+</body>
+</html>
