@@ -1,0 +1,27 @@
+{
+  "name": "byok-node-proxy",
+  "version": "1.0.0",
+  "description": "Reference BYOK proxy server. Forwards user-supplied API keys to Anthropic without storing them.",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "start:bun": "bun server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/0xelitesystem/byok-patterns.git"
+  },
+  "keywords": [
+    "byok",
+    "anthropic",
+    "claude",
+    "proxy",
+    "rate-limit"
+  ],
+  "author": "0xelitesystem"
+}
