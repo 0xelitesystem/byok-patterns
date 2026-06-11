@@ -60,6 +60,6 @@ MIT. See [LICENSE](LICENSE).
 ## Related
 
 This repo is part of a small cluster of practical Claude tooling:
-- [prompt-templates](https://github.com/0xelitesystem/prompt-templates) — production prompts that target specific LLM failure modes
-- [claude-skills-templates](https://github.com/0xelitesystem/claude-skills-templates) — five reference Skill patterns
-- [readme-slop-checker](https://github.com/0xelitesystem/readme-slop-checker) — audit a README for AI-generated cliches
+- [prompt-templates](https://github.com/0xelitesystem/prompt-templates), production prompts that target specific LLM failure modes
+- [claude-skills-templates](https://github.com/0xelitesystem/claude-skills-templates), five reference Skill patterns
+- [readme-slop-checker](https://github.com/0xelitesystem/readme-slop-checker), audit a README for AI-generated cliches

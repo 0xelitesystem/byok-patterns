@@ -40,12 +40,12 @@ This file is heavily commented. Read it as a tutorial, not just a copy-paste ref
 
 Key functions:
 
-- `byok_example_encrypt($plaintext)` and `byok_example_decrypt($ciphertext)` — crypto helpers
-- `byok_example_validate_key($key)` — calls Anthropic to confirm the key works
-- `byok_example_get_key()` — single accessor for retrieving the decrypted key when needed
-- `byok_example_clear_key()` — full removal, used on uninstall
-- `byok_example_settings_page()` — admin UI rendered via the Settings API
-- `byok_example_handle_test_prompt()` — AJAX handler that demonstrates a real API call
+- `byok_example_encrypt($plaintext)` and `byok_example_decrypt($ciphertext)`, crypto helpers
+- `byok_example_validate_key($key)`, calls Anthropic to confirm the key works
+- `byok_example_get_key()`, single accessor for retrieving the decrypted key when needed
+- `byok_example_clear_key()`, full removal, used on uninstall
+- `byok_example_settings_page()`, admin UI rendered via the Settings API
+- `byok_example_handle_test_prompt()`, AJAX handler that demonstrates a real API call
 
 Security primitives used:
 
