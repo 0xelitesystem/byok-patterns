@@ -53,6 +53,10 @@ Every pattern in this repo demonstrates the Anthropic API as the example. Adapti
 | OpenAI | `sk-` | `GET /v1/models` | `Authorization: Bearer <key>` |
 | Google AI | (varies) | `GET /v1beta/models?key=<key>` | (key in query for this one) |
 
+## More
+
+Part of a catalog of single-file browser tools and plain-language references, all MIT licensed and dependency-free: [0xelitesystem.github.io](https://0xelitesystem.github.io/). Built by [elitesystem.ai](https://elitesystem.ai).
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
